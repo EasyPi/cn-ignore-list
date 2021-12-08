@@ -1,0 +1,25 @@
+name: Github Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          wget -qO- http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest |
+            awk -F '|' '$2=="CN" && $3=="ipv4" {printf "%s/%s\n", $4, 32-log($5)/log(2)}' > ignore.list
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'ignore.list'
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: slackapi/slack-github-action@v1.16.0
+        with:
+          channel-id: github
+          slack-message: 'github release ok'
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
