@@ -1,23 +1,26 @@
 name: Github Release
 
 on:
-  push:
-    tags:
-      - '*'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1 * *'
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: |
           wget -qO- http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest |
             awk -F '|' '$2=="CN" && $3=="ipv4" {printf "%s/%s\n", $4, 32-log($5)/log(2)}' > ignore.list
-      - uses: ncipollo/release-action@v1
+      - id: date
+        run: echo "::set-output name=dt::$(TZ=UTC date +%F)"
+      - uses: softprops/action-gh-release@v2
         with:
-          artifacts: 'ignore.list'
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: slackapi/slack-github-action@v1.16.0
+          tag_name: ${{ steps.date.outputs.dt }}
+          files: |
+            ignore.list
+      - uses: slackapi/slack-github-action@v1.27.0
         with:
           channel-id: github
           slack-message: 'github release ok'
